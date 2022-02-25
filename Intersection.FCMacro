@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.24.rev3"
-#__version__ = "2022.02.24.rev3"
+__version__ = "2022.02.24.rev4"
+#__version__ = "2022.02.24.rev4"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
@@ -14,6 +14,8 @@ __version__ = "2022.02.24.rev3"
 #class Intersection:
 #    def __init__(self,obj):
 #        obj.Proxy = self
+#        obj.addProperty("App::PropertyEnumeration","ObjectOrder","Intersection","Order of evaluation").ObjectOrder =\
+#["1,2,3","1,3,2","2,1,3","2,3,1","3,1,2","3,2,1"]
 #        obj.addProperty("App::PropertyLinkSub","Object1","Intersection","First intersection object")
 #        obj.addProperty("App::PropertyLinkSub","Object2","Intersection","Second intersection object")
 #        obj.addProperty("App::PropertyLinkSub","Object3","Intersection","Optional 3rd object")
@@ -67,6 +69,10 @@ __version__ = "2022.02.24.rev3"
 #            s1 = fp.Object1[0].getSubObject(fp.Object1[1])[0]
 #            s2 = fp.Object2[0].getSubObject(fp.Object2[1])[0]
 #            s3 = fp.Object3[0].getSubObject(fp.Object3[1])[0] if fp.Object3 else None
+#            orders = [(s1,s2,s3),(s1,s3,s2),(s2,s1,s3),(s2,s3,s1),(s3,s1,s2),(s3,s2,s1)]
+#            s1,s2,s3 = orders[fp.getEnumerationsOfProperty("ObjectOrder").index(fp.ObjectOrder)]
+#            if fp.ObjectOrder != "1,2,3":
+#                FreeCAD.Console.PrintMessage(f"Intersection: Executing Object order = {fp.ObjectOrder}\n")
 #        except Exception as ex:
 #            FreeCAD.Console.PrintError(f"{ex}")
 #            return Part.Shape()
