@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.24.rev2"
-#__version__ = "2022.02.24.rev2"
+__version__ = "2022.02.24.rev3"
+#__version__ = "2022.02.24.rev3"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
@@ -14,48 +14,87 @@ __version__ = "2022.02.24.rev2"
 #class Intersection:
 #    def __init__(self,obj):
 #        obj.Proxy = self
-#        obj.addProperty("App::PropertyLinkSub","Object1","Intersection")
-#        obj.addProperty("App::PropertyLinkSub","Object2","Intersection")
-#        obj.addProperty("App::PropertyBool","HasIntersection","Intersection","Whether objects intersect")
+#        obj.addProperty("App::PropertyLinkSub","Object1","Intersection","First intersection object")
+#        obj.addProperty("App::PropertyLinkSub","Object2","Intersection","Second intersection object")
+#        obj.addProperty("App::PropertyLinkSub","Object3","Intersection","Optional 3rd object")
+#        obj.addProperty("App::PropertyBool","HasIntersection","Intersection","True is good.  Whether objects intersect")
+#        obj.addProperty("App::PropertyBool","Incomplete","Intersection","False is good.  True = intersection between object1 and object2, but object3 was not able to be used.")
 #        obj.addProperty("App::PropertyString","Type","Intersection","Type of the intersection object or None").Type="None"
 #        obj.addProperty("App::PropertyString","Version","Intersection").Version = __version__
 #        obj.setEditorMode("HasIntersection",1) #readonly
 #        obj.setEditorMode("Version",1)
 #        obj.setEditorMode("Type",1)
+#        obj.setEditorMode("Incomplete",1)
 #
 #    def execute(self,fp):
 #        shape = self.findIntersection(fp)
+#        fp.HasIntersection = not shape.isNull()
+#        fp.Type = self.getIntersectionType(shape)
+#        if not shape.isNull():
+#            fp.Shape = shape
 #
-#    def findIntersection(self,fp):
-#        if not fp.Object1 or not fp.Object2:
-#            fp.HasIntersection = False
-#            return
-#        try:
-#            s1 = fp.Object1[0].getSubObject(fp.Object1[1])[0]
-#            s2 = fp.Object2[0].getSubObject(fp.Object2[1])[0]
-#        except Exception as ex:
-#            FreeCAD.Console.PrintError(f"{ex}")
-#            return False
-#        s1 = s1.Curve if hasattr(s1,"Curve") else s1.Surface
-#        s2 = s2.Curve if hasattr(s2,"Curve") else s2.Surface
-#        intersection = s1.intersect(s2)
-#        FreeCAD.Console.PrintLog(f"Intersection macro: intersection = {intersection}\n")
+#    def getIntersectionType(self,shp):
+#        if hasattr(shp,"Curve"):
+#            return shp.Curve.TypeId
+#        if hasattr(shp,"Surface"):
+#            return shp.Surface.TypeId
+#        if hasattr(shp,"Vertex1"):
+#            return shp.Vertex1.ShapeType
+#        if not shp:
+#            return "None"
+#        if hasattr(shp,"isNull") and shp.isNull():
+#            return "Null shape"
+#        return "Unknown shape type"
+#
+#    def getIntersectionShape(self,fp,intersection):
+#        """return geometry / list as shape"""
+#        shape = Part.Shape()
+#        #FreeCAD.Console.PrintLog(f"Intersection macro: intersection = {intersection}\n")
 #        if intersection and intersection[0]:
-#            intObj = intersection[0] #can be [point] or line or [bspline,bspline..]
+#            intObj = intersection[0] #can be [point,point...] or line or [bspline,bspline...]
 #            typeObj = str(type(intObj))
 #            if "list" in typeObj:
 #                shapes = [sh.toShape() for sh in intersection[0]]
-#                fp.Shape = Part.makeCompound(shapes)
-#                fp.HasIntersection = True
-#                fp.Type = f"{shapes[0].TypeId}"
+#                shape = Part.makeCompound(shapes)
 #            else:
-#                fp.Shape = intersection[0].toShape()
-#                fp.HasIntersection = True
-#                fp.Type = f"{intersection[0].TypeId}"
-#        else:
-#            fp.HasIntersection = False
-#            fp.Type = "None"
-#        pass
+#                shape = intersection[0].toShape()
+#        return shape
+#
+#    def findIntersection(self,fp):
+#        if not fp.Object1 or not fp.Object2:
+#            return Part.Shape()
+#        try:
+#            s1 = fp.Object1[0].getSubObject(fp.Object1[1])[0]
+#            s2 = fp.Object2[0].getSubObject(fp.Object2[1])[0]
+#            s3 = fp.Object3[0].getSubObject(fp.Object3[1])[0] if fp.Object3 else None
+#        except Exception as ex:
+#            FreeCAD.Console.PrintError(f"{ex}")
+#            return Part.Shape()
+#        s1 = s1.Curve if hasattr(s1,"Curve") else s1.Surface
+#        s2 = s2.Curve if hasattr(s2,"Curve") else s2.Surface
+#        s3 = s3.Curve if hasattr(s3,"Curve") else s3.Surface if hasattr(s3,"Surface") else None
+#        intersection = s1.intersect(s2)
+#        if not intersection:
+#            return Part.Shape()
+#        shape = self.getIntersectionShape(fp, intersection)
+#        if shape.isNull():
+#            return Part.Shape()
+#        if not s3:
+#            fp.Incomplete = False
+#            return shape
+#        s4 = shape.Curve if hasattr(shape,"Curve") else shape.Surface if hasattr(shape,"Surface") else None
+#        if not s4:
+#            FreeCAD.Console.PrintWarning(f"Unable to use {fp.Object3[0].Label}.{fp.Object3[1]} because of \
+#intersection type ({shape.TypeId}) of {fp.Object1[0].Label}.{fp.Object1[1]} and {fp.Object2[0].Label}.{fp.Object2[1]} \
+#Note: Intersection type of first 2 objects must generally be an edge in order to use 3rd object.\n")
+#            fp.Incomplete = True
+#            return shape
+#        intersection = s3.intersect(s4) if s4 else None
+#        if not intersection:
+#            return Part.Shape()
+#        fp.Incomplete = False
+#        shape = self.getIntersectionShape(fp,intersection)
+#        return shape
 #
 #
 #class IntersectionVP:
@@ -351,6 +390,36 @@ def writeFile():
                     line = "#" + line
                 outfile.write(line[1:]+"\n") #skip first character (#)
 
+def findHome(fp, datum1=None):
+    """find a home for fp, either in a Part or a Body, if one is active
+       or in same container as datum1 if none are active"""
+    foundHome = False
+    body=FreeCADGui.ActiveDocument.ActiveView.getActiveObject("pdbody")
+    part=FreeCADGui.ActiveDocument.ActiveView.getActiveObject("part")
+    if body:
+        body.Group=body.Group+[fp]
+        foundHome = True
+    if not foundHome and datum1:
+        parent = None
+        if datum1.Parents:
+            parent=datum1.Parents[0][0] #put in same body as Object1
+        if parent and parent.TypeId == "App::Part":
+            part = parent
+            if not foundHome:
+                for obj in parent.Group:
+                    if obj.TypeId == "PartDesign::Body":
+                        if datum1 in obj.Group:
+                            obj.Group += [fp]
+                            foundHome = True
+        elif parent and parent.TypeId == "PartDesign::Body":
+            if not body and not foundHome:
+                parent.Group += [fp]
+                foundHome = True
+        if not foundHome:
+            if part:
+                part.Group += [fp]
+    return foundHome
+
 def makeObject(FP):
     doc = FreeCAD.ActiveDocument
     if doc:
@@ -361,89 +430,37 @@ def makeObject(FP):
         else:
             Intersection(fp)
             IntersectionVP(fp.ViewObject)
-        fp.ViewObject.PointSize = 5
-        fp.ViewObject.LineWidth = 5
+        fp.ViewObject.PointSize = 7
+        fp.ViewObject.LineWidth = 7
+        foundHome = findHome(fp) #puts in part/body if one is active
         doc.recompute()
-        foundHome = False
-        body=FreeCADGui.ActiveDocument.ActiveView.getActiveObject("pdbody")
-        part=FreeCADGui.ActiveDocument.ActiveView.getActiveObject("part")
-        if body:
-            body.Group=body.Group+[fp]
-            foundHome = True
         sel = FreeCADGui.Selection.getSelectionEx()
-        selectionFailure = False
-        s1 = None
-        s2 = None
-        countFaces = 0
-        countEdges = 0
-        if len(sel) == 2:
-            for s in sel:
-                if not s.Object.isDerivedFrom("Part::Feature"):
-                    #FreeCAD.Console.PrintError("Select 2 intersecting datum planes / datum lines\n")
-                    selectionFailure = True
-                if s.SubElementNames and bool("Face" in s.SubElementNames[0] or "Plane" in s.SubElementNames[0]) or s.Object.isDerivedFrom("PartDesign::Plane"):
-                    datumplane = s
-                    countFaces += 1
-                elif s.SubElementNames and bool("Edge" in s.SubElementNames[0] or "Line" in s.SubElementNames[0]) or s.Object.isDerivedFrom("PartDesign::Line"):
-                    datumline = s
-                    countEdges += 1
-        elif len(sel) == 1 and len(sel[0].SubElementNames) == 2:
-                s1 = sel[0].SubElementNames[0]
-                s2 = sel[0].SubElementNames[1]
-                if not sel[0].Object.isDerivedFrom("Part::Feature"):
-                    #FreeCAD.Console.PrintError("Select 2 intersecting datum planes / datum lines\n")
-                    selectionFailure = True
-                if "Face" in s1 or "Plane" in s1:
-                    datumplane = sel[0].Object
-                    countFaces += 1
-                elif "Edge" in s1 or "Line" in s1:
-                    datumline = sel[0].Object
-                    countEdges += 1
-                if "Face" in s2 or "Plane" in s2:
-                    datumplane = sel[0].Object
-                    countFaces += 1
-                elif "Edge" in s2 or "Line" in s2:
-                    datumline = sel[0].Object
-                    countEdges += 1
-        if not countEdges + countFaces == 2:
-            selectionFailure = True
-        if not selectionFailure:
-            if not s1 and not s2: #2 objects
-                names1 = sel[0].SubElementNames if not sel[0].Object.isDerivedFrom("PartDesign::Plane") else "Plane"
-                names1 = names1 if not sel[0].Object.isDerivedFrom("PartDesign::Line") else "Line"
-                names2 = sel[1].SubElementNames if not sel[1].Object.isDerivedFrom("PartDesign::Plane") else "Plane"
-                names2 = names2 if not sel[1].Object.isDerivedFrom("PartDesign::Line") else "Line"
-                fp.Object1 = (sel[0].Object,names1)
-                fp.Object2 = (sel[1].Object,names2)
-            else: #both subobjects from same object
-                fp.Object1 = (sel[0].Object,f"{s1}")
-                fp.Object2 = (sel[0].Object,f"{s2}")
-            datum1 = fp.Object1[0]
-            datum2 = fp.Object2[0]
-        if not foundHome and fp.Object1:
-            parent = None
-            if datum1.Parents:
-                parent=datum1.Parents[0][0] #put in same body as Object1
-            if parent and parent.TypeId == "App::Part":
-                part = parent
-                if not foundHome:
-                    for obj in parent.Group:
-                        if obj.TypeId == "PartDesign::Body":
-                            if datum1 in obj.Group:
-                                obj.Group += [fp]
-                                foundHome = True
-            elif parent and parent.TypeId == "PartDesign::Body":
-                if not body and not foundHome:
-                    parent.Group += [fp]
-                    foundHome = True
+        subobjects = []
+        for s in sel:
+            if s.HasSubObjects:
+                for en in s.SubElementNames:
+                    subobjects.append((s.Object,en))
+            else:
+                if s.Object.isDerivedFrom("PartDesign::Plane"):
+                    subobjects.append((s.Object,"Plane"))
+                elif s.Object.isDerivedFrom("PartDesign::Line"):
+                    subobjects.append((s.Object,"Line"))
+                elif not hasattr(s.Object,"Shape"):
+                    FreeCAD.Console.PrintWarning(f"Skipping {s.Object.Label}\n")
+                    continue
+                elif len(s.Object.Shape.Faces) == 1:
+                    subobjects.append((s.Object,"Face1"))
+                elif len(s.Object.Shape.Edges) == 1:
+                    subobjects.append((s.Object,"Edge1"))
+        if len(subobjects) > 3 or len(subobjects) == 0:
+            FreeCAD.Console.PrintError("Selection Error, select 1, 2, or 3 objects\n")
+            raise Exception("Invalid selection\n")
+        else:
+            fp.Object1 = subobjects[0] if len(subobjects) >= 1 else None
+            fp.Object2 = subobjects[1] if len(subobjects) >= 2 else None
+            fp.Object3 = subobjects[2] if len(subobjects) == 3 else None
             if not foundHome:
-                if part:
-                    part.Group += [fp]
-        if selectionFailure:
-            FreeCAD.Console.PrintWarning("You should select the 2 objects prior to running macro. \
-You may now edit the Object1 and Object2 properties to include the desired objects. \
-You are probably better off to delete the Intersection object \
-and run the macro again, this time selecting the objects prior to running the macro.\n")
+                findHome(fp,fp.Object1[0]) #put fp in same body as first selected object
         doc.recompute()
 
 ###########
