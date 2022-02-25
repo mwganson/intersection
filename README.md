@@ -36,3 +36,6 @@ Readonly.  The version of the macro used to create this Intersection object.
 <br/>
 To illustrate both of the above issues, consider a datum line positioned on the top face of a cube, running front to back.  If the datum line and the top face are selected to make the Intersection object, no intersection will be found.  But if the front face is selected along with the datum line, then an intersection will be found.  If you move the datum line in the z direction so that it is above the top face, the intersection with the front face is still found because the front face is treated as an infinite plane.
 
+# Changelog
+* 2022.02.24.rev2 --make some properties readonly
+* 2022.02.24 -- initial version
