@@ -31,8 +31,10 @@ The Intersection object has a few properties.
 True if there is an intersection, False if not.  This property is readonly, for information only.
 ## Incomplete (Bool)
 Readonly.  If this is True, then it means the first 2 objects were successfully intersected, but the 3rd object could not be used because the intersection was a vertex.
-## Object1, Object2 (LinkSub)
+## Object1, Object2, Object3 (LinkSub)
 The objects to test for intersection.  An example could be Sketch.Edge1, or Cylinder.Face2.
+## Object Order (Enumeration)
+Allow to rearrange the order of evaluation of Object1, Object2, and Object3.  The way the order of evaluation works is first an intersection is sought between Object1 and Object2.  If an intersection is found, let's say for example an intersection between 2 faces results in a line, then the result (the line) is checked for an intersection with Object3, if any.  In some cases the intersection between Object1 and Object2 is a point.  Points cannot be used in the intersect() function, so the Incomplete property is set to True and a warning is shown in the Report view.  You can sometimes rearrange the order of evaluation in order to allow all 3 objects to be used.
 ## Type (String)
 The type of the intersection object.  This is also readonly.  Shows the TypeId of the intersection shape.  For example, if 2 datum planes are intersecting, then the Type would be Part::GeomLine.
 ## Version (String)
@@ -45,6 +47,7 @@ To illustrate both of the above issues, consider a datum line positioned on the 
 * seamlines may interfere with the intersection shape.  For example, if a datum plane intersects a sphere the seamline of the sphere might trim the intersection shape to produce an arc instead of a full circle.<br/>
 
 # Changelog
+* 2022.02.24.rev4 -- add Object Order property
 * 2022.02.24.rev3 -- add support for 3rd object
 * 2022.02.24.rev2 --make some properties readonly
 * 2022.02.24 -- initial version
