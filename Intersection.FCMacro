@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.24"
-#__version__ = "2022.02.24"
+__version__ = "2022.02.24.rev2"
+#__version__ = "2022.02.24.rev2"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
@@ -14,11 +14,14 @@ __version__ = "2022.02.24"
 #class Intersection:
 #    def __init__(self,obj):
 #        obj.Proxy = self
-#        obj.addProperty("App::PropertyString","Version","Intersection").Version = __version__
 #        obj.addProperty("App::PropertyLinkSub","Object1","Intersection")
 #        obj.addProperty("App::PropertyLinkSub","Object2","Intersection")
 #        obj.addProperty("App::PropertyBool","HasIntersection","Intersection","Whether objects intersect")
 #        obj.addProperty("App::PropertyString","Type","Intersection","Type of the intersection object or None").Type="None"
+#        obj.addProperty("App::PropertyString","Version","Intersection").Version = __version__
+#        obj.setEditorMode("HasIntersection",1) #readonly
+#        obj.setEditorMode("Version",1)
+#        obj.setEditorMode("Type",1)
 #
 #    def execute(self,fp):
 #        shape = self.findIntersection(fp)
