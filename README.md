@@ -32,7 +32,7 @@ True if there is an intersection, False if not.  This property is readonly, for 
 ## Incomplete (Bool)
 Readonly.  If this is True, then it means the first 2 objects were successfully intersected, but the 3rd object could not be used because the intersection was a vertex.
 ## Object1, Object2, Object3 (LinkSub)
-The objects to test for intersection.  An example could be Sketch.Edge1, or Cylinder.Face2.
+The objects to test for intersection.  An example could be Sketch.Edge1, or Cylinder.Face2.  These should be faces or edges only, selected in the 3d view, but if the object only has one face or one edge it can be selected in the combo view / tree view.
 ## Object Order (Enumeration)
 Allow to rearrange the order of evaluation of Object1, Object2, and Object3.  The way the order of evaluation works is first an intersection is sought between Object1 and Object2.  If an intersection is found, let's say for example an intersection between 2 faces results in a line, then the result (the line) is checked for an intersection with Object3, if any.  In some cases the intersection between Object1 and Object2 is a point.  Points cannot be used in the intersect() function, so the Incomplete property is set to True and a warning is shown in the Report view.  You can sometimes rearrange the order of evaluation in order to allow all 3 objects to be used.
 ## Type (String)
