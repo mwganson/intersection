@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.24.rev4"
-#__version__ = "2022.02.24.rev4"
+__version__ = "2022.02.25"
+#__version__ = "2022.02.25"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
-#__doc__ = "Find the intersection of 2 faces/edges"
+#__doc__ = "Find the intersection of 2 or 3 faces/edges"
 #__usage__ = '''Select 2 faces or edges in the 3d view and run the macro'''
 #import FreeCAD,FreeCADGui,Part
 #Gui = FreeCADGui
@@ -14,94 +14,215 @@ __version__ = "2022.02.24.rev4"
 #class Intersection:
 #    def __init__(self,obj):
 #        obj.Proxy = self
+#        obj.addProperty("App::PropertyVector","Center","Intersection","Center of Mass of intersection result")
+#        obj.addProperty("App::PropertyBool","EnableLogging","Intersection","Enable log messages").EnableLogging = False
 #        obj.addProperty("App::PropertyEnumeration","ObjectOrder","Intersection","Order of evaluation").ObjectOrder =\
-#["1,2,3","1,3,2","2,1,3","2,3,1","3,1,2","3,2,1"]
+#["1,2,3","1,3,2","2,1,3","2,3,1","3,1,2","3,2,1","1,2","2,1","1,3","3,1","3,2","2,3"]
 #        obj.addProperty("App::PropertyLinkSub","Object1","Intersection","First intersection object")
 #        obj.addProperty("App::PropertyLinkSub","Object2","Intersection","Second intersection object")
 #        obj.addProperty("App::PropertyLinkSub","Object3","Intersection","Optional 3rd object")
-#        obj.addProperty("App::PropertyBool","HasIntersection","Intersection","True is good.  Whether objects intersect")
-#        obj.addProperty("App::PropertyBool","Incomplete","Intersection","False is good.  True = intersection between object1 and object2, but object3 was not able to be used.")
+#        obj.addProperty("App::PropertyBool","HasIntersection","Intersection","If intersection is found this will be True")
+#        obj.addProperty("App::PropertyBool","CheckVertexIntersection","Intersection",\
+#"When there are 3 objects and the intersection of the first 2 is a vertex, set this True \
+#to require that the vertex lies on the 3rd face or edge\n").CheckVertexIntersection = True
+#        obj.addProperty("App::PropertyBool","ResetOnRecompute","Intersection","Reset shape to null each recompute").ResetOnRecompute = True
+#        obj.addProperty("App::PropertyFloatConstraint","Tolerance","Intersection","Tolerance for testing if result vertex is on the shapes").Tolerance = (0.01,0,float("inf"),.01)
 #        obj.addProperty("App::PropertyString","Type","Intersection","Type of the intersection object or None").Type="None"
 #        obj.addProperty("App::PropertyString","Version","Intersection").Version = __version__
+#        obj.addProperty("App::PropertyEnumeration","Trimming","Intersection","If Trimmed, then the intersection edge is attempted to be trimmed to surfaces").Trimming = \
+#["Untrimmed","Trimmed"]
 #        obj.setEditorMode("HasIntersection",1) #readonly
 #        obj.setEditorMode("Version",1)
 #        obj.setEditorMode("Type",1)
-#        obj.setEditorMode("Incomplete",1)
+#
+#    def log(self,fp,msg):
+#        if fp.EnableLogging:
+#            FreeCAD.Console.PrintLog(msg)
+#
+#    def validate(self, fp, propName):
+#        prop = getattr(fp,propName)
+#        if not prop:
+#            return
+#        prop1 = prop[1]
+#        if not prop1:
+#            obj = prop[0]
+#            if len(obj.Shape.Faces) == 1:
+#                prop1 = "Face1" if not obj.isDerivedFrom("PartDesign::Plane") else "Plane"
+#            elif len(obj.Shape.Edges) == 1:
+#                prop1 = "Edge1" if not obj.isDerivedFrom("PartDesign::Line") else "Line"
+#            elif len(obj.Shape.Vertexes) == 1:
+#                prop1 = "Vertex1" if not obj.isDerivedFrom("PartDesign::Point") else "Point"
+#                FreeCAD.Console.PrintWarning("Intersection: Vertex objects not supported\n")
+#            else:
+#                return
+#            setattr(fp,propName,(obj,prop1))
 #
 #    def execute(self,fp):
+#        if fp.ResetOnRecompute:
+#            fp.Shape = Part.Shape()
+#        self.validate(fp,"Object1")
+#        self.validate(fp,"Object2")
+#        self.validate(fp,"Object3")
 #        shape = self.findIntersection(fp)
-#        fp.HasIntersection = not shape.isNull()
-#        fp.Type = self.getIntersectionType(shape)
 #        if not shape.isNull():
-#            fp.Shape = shape
+#            fp.Shape = self.makeShapeType(fp,shape)
+#        fp.Type = self.getIntersectionType(fp,fp.Shape)
+#        try:
+#            fp.Shape.check(True)
+#            fp.HasIntersection = not fp.Shape.isNull()
+#        except:
+#            fp.HasIntersection = False
+#            fp.Shape = Part.Shape()
 #
-#    def getIntersectionType(self,shp):
-#        if hasattr(shp,"Curve"):
-#            return shp.Curve.TypeId
+#    def makeShapeType(self,fp,shp):
+#        if fp.Trimming == "Untrimmed":
+#            return shp
+#        if fp.Trimming == "Trimmed":
+#            obj1 = fp.Object1[0].getSubObject(fp.Object1[1])[0] if fp.Object1 else Part.Shape()
+#            obj2 = fp.Object2[0].getSubObject(fp.Object2[1])[0] if fp.Object2 else Part.Shape()
+#            obj3 = fp.Object3[0].getSubObject(fp.Object3[1])[0] if fp.Object3 else Part.Shape()
+#            common = shp.common(obj1) if not obj1.isNull() else shp
+#            common = common.common(obj2) if not obj2.isNull() else common
+#            common = common.common(obj3) if not obj3.isNull() else common
+#            return common
+#
+#    def getIntersectionType(self,fp,shp):
+#        if hasattr(shp,"Compound1") and hasattr(shp.Compound1,"Edge1"):
+#            fp.Center = shp.Compound1.Edge1.CenterOfGravity
+#            return shp.Compound1.Edge1.Curve.TypeId
 #        if hasattr(shp,"Surface"):
+#            fp.Center = shp.Surface.Position
 #            return shp.Surface.TypeId
 #        if hasattr(shp,"Vertex1"):
+#            fp.Center = shp.Vertex1.Point
 #            return shp.Vertex1.ShapeType
 #        if not shp:
+#            fp.Center = FreeCAD.Vector()
 #            return "None"
 #        if hasattr(shp,"isNull") and shp.isNull():
+#            fp.Center = FreeCAD.Vector()
 #            return "Null shape"
-#        return "Unknown shape type"
+#        return shp.ShapeType
 #
 #    def getIntersectionShape(self,fp,intersection):
 #        """return geometry / list as shape"""
 #        shape = Part.Shape()
-#        #FreeCAD.Console.PrintLog(f"Intersection macro: intersection = {intersection}\n")
-#        if intersection and intersection[0]:
-#            intObj = intersection[0] #can be [point,point...] or line or [bspline,bspline...]
-#            typeObj = str(type(intObj))
-#            if "list" in typeObj:
-#                shapes = [sh.toShape() for sh in intersection[0]]
-#                shape = Part.makeCompound(shapes)
+#        #self.log(fp,f"Intersection macro: intersection = {intersection}\n")
+#        if intersection:
+#            self.log(fp,f"getintshp(): intersection = {intersection}\n")
+#            intObj = intersection #can be [point,point...] or line or [bspline,bspline...]
+#            if isinstance(intObj,list):
+#                self.log(fp,f"getintshp(): intObj is list\n")
+#                shapes = [sh.toShape() for sh in intObj]
+#                self.log(fp,f"getintshp(): shapes = {shapes}\n")
+#                shape = Part.makeCompound(shapes) if len(shapes)>1 else shapes[0]
+#            elif isinstance(intObj,tuple):
+#                self.log(fp,f"getintshp(): intersection is a tuple\n")
+#                shapes = [sh.toShape() for sh in intObj[0]]
+#                self.log(fp,f"getintshp(): shapes = {shapes}\n")
+#                shape = Part.makeCompound(shapes) if len(shapes) > 1 else shapes[0] if shapes else Part.Shape()
 #            else:
-#                shape = intersection[0].toShape()
+#                shape = intersection.toShape() if hasattr(intersection,"toShape") else Part.Shape()
+#        self.log(fp,f"getintshp():(after) shape = {shape}\n")
 #        return shape
 #
 #    def findIntersection(self,fp):
 #        if not fp.Object1 or not fp.Object2:
 #            return Part.Shape()
 #        try:
-#            s1 = fp.Object1[0].getSubObject(fp.Object1[1])[0]
-#            s2 = fp.Object2[0].getSubObject(fp.Object2[1])[0]
+#            s1 = fp.Object1[0].getSubObject(fp.Object1[1])[0] if fp.Object1 else None
+#            s2 = fp.Object2[0].getSubObject(fp.Object2[1])[0] if fp.Object2 else None
 #            s3 = fp.Object3[0].getSubObject(fp.Object3[1])[0] if fp.Object3 else None
-#            orders = [(s1,s2,s3),(s1,s3,s2),(s2,s1,s3),(s2,s3,s1),(s3,s1,s2),(s3,s2,s1)]
+#            orders = [(s1,s2,s3),(s1,s3,s2),(s2,s1,s3),(s2,s3,s1),(s3,s1,s2),(s3,s2,s1),\
+#            (s1,s2,None),(s2,s1,None),(s1,s3,None),(s3,s1,None),(s3,s2,None),(s2,s3,None)]
 #            s1,s2,s3 = orders[fp.getEnumerationsOfProperty("ObjectOrder").index(fp.ObjectOrder)]
 #            if fp.ObjectOrder != "1,2,3":
 #                FreeCAD.Console.PrintMessage(f"Intersection: Executing Object order = {fp.ObjectOrder}\n")
 #        except Exception as ex:
 #            FreeCAD.Console.PrintError(f"{ex}")
 #            return Part.Shape()
-#        s1 = s1.Curve if hasattr(s1,"Curve") else s1.Surface
-#        s2 = s2.Curve if hasattr(s2,"Curve") else s2.Surface
-#        s3 = s3.Curve if hasattr(s3,"Curve") else s3.Surface if hasattr(s3,"Surface") else None
-#        intersection = s1.intersect(s2)
+#        c1 = s1.Curve if hasattr(s1,"Curve") else s1.Surface if hasattr(s1,"Surface") else None
+#        c2 = s2.Curve if hasattr(s2,"Curve") else s2.Surface if hasattr(s2,"Surface") else None
+#        c3 = s3.Curve if hasattr(s3,"Curve") else s3.Surface if hasattr(s3,"Surface") else None
+#        assert(c1 != None and c2 != None)
+#        intersection = c1.intersect(c2)
 #        if not intersection:
+#            self.log(fp,"No intersection, trying c2 -> c1 instead of c1 -> c2\n")
+#            intersection = c2.intersect(c1)
+#            intersection = self.getIntersectionShape(fp,intersection)
+#        if not intersection:
+#            self.log(fp,"No intersection between c1 and c2\n")
 #            return Part.Shape()
+#        intersection = self.trimEdgeToSurfaces(fp,intersection,s1,s2)
 #        shape = self.getIntersectionShape(fp, intersection)
 #        if shape.isNull():
+#            self.log(fp,"No intersection shape\n")
 #            return Part.Shape()
-#        if not s3:
-#            fp.Incomplete = False
-#            return shape
-#        s4 = shape.Curve if hasattr(shape,"Curve") else shape.Surface if hasattr(shape,"Surface") else None
-#        if not s4:
-#            FreeCAD.Console.PrintWarning(f"Unable to use {fp.Object3[0].Label}.{fp.Object3[1]} because of \
-#intersection type ({shape.TypeId}) of {fp.Object1[0].Label}.{fp.Object1[1]} and {fp.Object2[0].Label}.{fp.Object2[1]} \
-#Note: Intersection type of first 2 objects must generally be an edge in order to use 3rd object.\n")
-#            fp.Incomplete = True
-#            return shape
-#        intersection = s3.intersect(s4) if s4 else None
+#        if not c3: #success with first 2 objects, no third object
+#            self.log(fp,f"checking shape = {shape} and s2 = {s2} \n")
+#            shape = self.checkVertexIntersection(fp, shape, s2)
+#            if shape.isNull():
+#                self.log(fp,"check vertex intersection returned null shape\n")
+#                return shape #shape was not inside c2
+#            else:
+#                shape = self.checkVertexIntersection(fp, shape, s1)
+#                self.log(fp,f"shape.isNull() = {shape.isNull()} after checking vertex with s1 {s1}\n")
+#                return shape
+#        c4 = shape.Curve if hasattr(shape,"Curve") else shape.Surface if hasattr(shape,"Surface") else None
+#        if not c4: #intersection at vertex found, now check against c3, c2, and c1
+#            return self.checkAllVertexIntersections(fp, shape, s1, s2, s3)
+#        #intersection was not a vertex, so must be an edge
+#        #c4 is the curve result, c3 is the surface/curve of Object3
+#        self.log(fp,f"checking c3.intersect(c4) {c3}.intersect({c4})\n")
+#        intersection = c3.intersect(c4) if c4 else None
+#        self.log(fp,f"intersection = {intersection}\n")
 #        if not intersection:
 #            return Part.Shape()
-#        fp.Incomplete = False
-#        shape = self.getIntersectionShape(fp,intersection)
-#        return shape
+#        return self.getIntersectionShape(fp,intersection)
 #
+#    def checkVertexIntersection(self, fp, shp, s3):
+#        """shp is a vertex shape inside a compound, s3 is an object, either a Curve or a Surface to test shp
+#           for intersection with.  Returns the vertex if it intersects with s3, or a null shape if not."""
+#        if not fp.CheckVertexIntersection:
+#            return shp
+#        if shp.isNull():
+#             self.log(fp,"ckvtx: shp is null\n")
+#             return shp
+#        self.log(fp,f"checkVertexIntersection(): shp = {shp}, s3 = {s3}\n")
+#        if not hasattr(shp,"Face1") and not hasattr(shp,"Edge1") and not hasattr(shp,"Plane") and not hasattr(shp,"Line") and hasattr(shp,"Vertex1"):
+#            msgs = [f"shp {shp} is a vertex, pt = {v.Point}\n" for v in s3.Vertexes]
+#            for msg in msgs:
+#                self.log(fp,msg)
+#            #Part.show(shp,"vtx")
+#            s3 = s3.toShape() if hasattr(s3,"toShape") else s3
+#            verts = [v for v in shp.Vertexes if s3.isInside(v.Point,fp.Tolerance,True)]
+#            if not verts:
+#                self.log(fp,f"ckvtxint: no points out of {len(s3.Vertexes)} found on {s3}\n")
+#            for v in verts:
+#                self.log(fp,f"ckvtxint: {v.Point} is on {s3}\n")
+#            comp = Part.makeCompound(verts) if verts else Part.Shape()
+#            self.log(fp,f"comp.check(True) = {comp.check(True)}\n")
+#            return comp
+#        else: #was not a vertex
+#            self.log(fp,f"{shp} was Not a vertex\n")
+#            return shp
+#
+#    def trimEdgeToSurfaces(self,fp,curve,surface1,surface2):
+#        """return from intersect() is sometimes a line, but the line extends beyond the face.
+#        this seeks to trim the line/curve to the confines of thos surfaces"""
+#        self.log(fp,f"trim(): curve = {curve}, surface1 = {surface1}, surface2 = {surface2}\n")
+#        return curve
+#
+#    def checkAllVertexIntersections(self, fp, shp, s1, s2, s3):
+#        shape = self.checkVertexIntersection(fp, shp, s3)
+#        if shape.isNull():
+#            return shape
+#        else:
+#            shape = self.checkVertexIntersection(fp, shape,s2)
+#            if shape.isNull():
+#                return shape
+#            else:
+#                return self.checkVertexIntersection(fp, shape,s1)
 #
 #class IntersectionVP:
 #
