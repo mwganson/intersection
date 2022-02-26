@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.25"
-#__version__ = "2022.02.25"
+__version__ = "2022.02.26"
+#__version__ = "2022.02.26"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
 #__doc__ = "Find the intersection of 2 or 3 faces/edges"
 #__usage__ = '''Select 2 faces or edges in the 3d view and run the macro'''
+#from PySide import QtGui,QtCore
 #import FreeCAD,FreeCADGui,Part
 #Gui = FreeCADGui
 #App = FreeCAD
@@ -24,16 +25,19 @@ __version__ = "2022.02.25"
 #        obj.addProperty("App::PropertyBool","HasIntersection","Intersection","If intersection is found this will be True")
 #        obj.addProperty("App::PropertyBool","CheckVertexIntersection","Intersection",\
 #"When there are 3 objects and the intersection of the first 2 is a vertex, set this True \
-#to require that the vertex lies on the 3rd face or edge\n").CheckVertexIntersection = True
-#        obj.addProperty("App::PropertyBool","ResetOnRecompute","Intersection","Reset shape to null each recompute").ResetOnRecompute = True
+#to require that the vertex lies on the 3rd face or edge\n").CheckVertexIntersection = False
+#        obj.addProperty("App::PropertyBool","ResetOnRecompute","Intersection","Reset shape to null at the start of each recompute").ResetOnRecompute = True
 #        obj.addProperty("App::PropertyFloatConstraint","Tolerance","Intersection","Tolerance for testing if result vertex is on the shapes").Tolerance = (0.01,0,float("inf"),.01)
 #        obj.addProperty("App::PropertyString","Type","Intersection","Type of the intersection object or None").Type="None"
 #        obj.addProperty("App::PropertyString","Version","Intersection").Version = __version__
-#        obj.addProperty("App::PropertyEnumeration","Trimming","Intersection","If Trimmed, then the intersection edge is attempted to be trimmed to surfaces").Trimming = \
+#        obj.addProperty("App::PropertyEnumeration","Trimming","Intersection","If Trimmed, then the intersection edge is attempted to be trimmed to surfaces\n\
+#If the intersection does not lie on the surface/edge, then it will not be considered an intersection in Trimmed mode.").Trimming = \
 #["Untrimmed","Trimmed"]
 #        obj.setEditorMode("HasIntersection",1) #readonly
 #        obj.setEditorMode("Version",1)
 #        obj.setEditorMode("Type",1)
+#        self.fpName = obj.Name
+#        self.editingMode = False
 #
 #    def log(self,fp,msg):
 #        if fp.EnableLogging:
@@ -193,9 +197,12 @@ __version__ = "2022.02.25"
 #            msgs = [f"shp {shp} is a vertex, pt = {v.Point}\n" for v in s3.Vertexes]
 #            for msg in msgs:
 #                self.log(fp,msg)
-#            #Part.show(shp,"vtx")
-#            s3 = s3.toShape() if hasattr(s3,"toShape") else s3
-#            verts = [v for v in shp.Vertexes if s3.isInside(v.Point,fp.Tolerance,True)]
+##            interim = FreeCAD.ActiveDocument.addObject("Part::Feature","Interim")
+##            interim.Shape = shp
+##            s3 = s3.toShape() if hasattr(s3,"toShape") else s3
+##            s3interim = FreeCAD.ActiveDocument.addObject("Part::Feature","s3")
+##            s3interim.Shape = s3
+#            verts = [v for v in shp.Vertexes if v.distToShape(s3)[0] <= fp.Tolerance]
 #            if not verts:
 #                self.log(fp,f"ckvtxint: no points out of {len(s3.Vertexes)} found on {s3}\n")
 #            for v in verts:
@@ -224,11 +231,108 @@ __version__ = "2022.02.25"
 #            else:
 #                return self.checkVertexIntersection(fp, shape,s1)
 #
+#    def editFaces(self):
+#        from PySide import QtGui
+#        fp = FreeCAD.ActiveDocument.getObject(self.fpName)
+#        if not FreeCADGui.Control.activeDialog():
+#            panel = TaskEditLinkSubPanel(fp,["Object1","Object2","Object3"],"Faces/Edges")
+#            FreeCADGui.Control.showDialog(panel)
+#            self.editingMode = True #tells execute() not to hide the linked object
+#        else:
+#            self.editingMode=False
+#            FreeCAD.Console.PrintError("Another task dialog is active.  Close that one and try again.\n")
+#
+#
+#
+#class TaskEditLinkSubPanel: #simple editor for App::PropertyLinkSub
+#    def __init__(self, obj, linkSubNames, subNames,):
+#        self.obj = obj
+#        self.subNames = subNames
+#        self.linkSubNames = linkSubNames #list of property names
+#        self.linkObjs = []
+#        self.subObjects = []
+#        for ii,lsn in enumerate(self.linkSubNames):
+#            if lsn:
+#                atr = getattr(self.obj,self.linkSubNames[ii])
+#                if atr and len(atr) == 2:
+#                    self.linkObjs.append(atr[0])
+#                    self.subObjects.append(atr[1])
+#        self.obj.Proxy.log(self.obj, f"linkObjs = {self.linkObjs}, subObjects = {self.subObjects}\n")
+#        self.form = QtGui.QWidget()
+#        self.label1 = QtGui.QLabel("Select the "+self.subNames+" subobjects to use and click OK.\nThe ones already being utilized have been selected for you.")
+#        layout=QtGui.QHBoxLayout()
+#        layout.addWidget(self.label1)
+#        self.form.setLayout(layout)
+#        self.form.setWindowTitle('Edit '+self.subNames)
+#        FreeCADGui.Selection.clearSelection()
+#        for ii,linkObj in enumerate(self.linkObjs):
+#            for f in self.subObjects[ii]:
+#                FreeCADGui.Selection.addSelection(FreeCAD.ActiveDocument.Name,linkObj.Name,f)
+#        self.obj.Proxy.editingMode = True
+#
+#    def reject(self):
+#        FreeCADGui.Control.closeDialog()
+#        fp = self.obj
+#        self.obj.Proxy.editingMode = False
+#        FreeCADGui.activeDocument().resetEdit()
+#        FreeCAD.ActiveDocument.recompute()
+#
+#    def accept(self):
+#        FreeCADGui.ActiveDocument.resetEdit()
+#        FreeCADGui.Control.closeDialog()
+#        fp = self.obj
+#        if not fp: #user deleted or closed document perhaps
+#            return
+#        selx = FreeCADGui.Selection.getSelectionEx()
+#        if not selx:
+#            FreeCAD.Console.PrintWarning("Nothing selected, leaving "+self.linkObj.Name+" unmodified.")
+#            return
+#        subobjects = []
+#        for s in selx:
+#            if s.HasSubObjects:
+#                for en in s.SubElementNames:
+#                    subobjects.append((s.Object,en))
+#            else:
+#                if s.Object.isDerivedFrom("PartDesign::Plane"):
+#                    subobjects.append((s.Object,"Plane"))
+#                elif s.Object.isDerivedFrom("PartDesign::Line"):
+#                    subobjects.append((s.Object,"Line"))
+#                elif not hasattr(s.Object,"Shape"):
+#                    FreeCAD.Console.PrintWarning(f"Skipping {s.Object.Label}\n")
+#                    continue
+#                elif len(s.Object.Shape.Faces) == 1:
+#                    subobjects.append((s.Object,"Face1"))
+#                elif len(s.Object.Shape.Edges) == 1:
+#                    subobjects.append((s.Object,"Edge1"))
+#        if len(subobjects) > 3 or len(subobjects) == 0:
+#            FreeCAD.Console.PrintError("Selection Error, select 1, 2, or 3 objects\n")
+#            raise Exception("Invalid selection\n")
+#        else:
+#            for linkSubName in self.linkSubNames:
+#                setattr(self.obj, linkSubName, None)
+#            for ii,subobject in enumerate(subobjects):
+#                setattr(self.obj,self.linkSubNames[ii], subobject)
+#        if hasattr(fp,"_Body") and fp._Body and self.linkObj not in fp._Body.Group:
+#            fp._Body.Group += [self.linkObj]
+#        if hasattr(fp.Proxy,"editingMode"):
+#            fp.Proxy.editingMode = False
+#        FreeCAD.ActiveDocument.recompute()
+#
+#
 #class IntersectionVP:
 #
 #    def __init__(self, obj):
 #        '''Set this object to the proxy object of the actual view provider'''
 #        obj.Proxy = self
+#
+#    def setEdit(self,vobj,modNum):
+#        #FreeCAD.Console.PrintMessage("modNum = "+str(modNum)+"\n")
+#        if modNum == 0:
+#            vobj.Object.Proxy.editFaces()
+#            return True
+#        elif modNum == 3: #color per face
+#            FreeCADGui.runCommand('Part_ColorPerFace',0)
+#            return True
 #
 #    def attach(self, obj):
 #        '''Setup the scene sub-graph of the view provider, this method is mandatory'''
