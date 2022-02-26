@@ -27,6 +27,12 @@ The edge will be blue, the points will be a lighter shade of blue.  The Intersec
 <br/>
 # Properties
 The Intersection object has a few properties.
+## Center (Vector)
+Readonly.  The center of the intersection.
+## Check Vertex Intersection (Bool)
+Default: True.  When there are 3 objects if the intersection of the first 2 is a vertex, then when this is True, the vertex is checked to see if it lies on the 3rd object.  Can resolve some cases where there are false positives.
+## Enable Logging (Bool)
+Default: False.  If True some rather quite cryptic logging message can be seen in the report view (also requires logging be enabled in FreeCAD).
 ## Has Intersection (Bool)
 True if there is an intersection, False if not.  This property is readonly, for information only.
 ## Incomplete (Bool)
@@ -35,6 +41,12 @@ Readonly.  If this is True, then it means the first 2 objects were successfully 
 The objects to test for intersection.  An example could be Sketch.Edge1, or Cylinder.Face2.  These should be faces or edges only, selected in the 3d view, but if the object only has one face or one edge it can be selected in the combo view / tree view.
 ## Object Order (Enumeration)
 Allow to rearrange the order of evaluation of Object1, Object2, and Object3.  The way the order of evaluation works is first an intersection is sought between Object1 and Object2.  If an intersection is found, let's say for example an intersection between 2 faces results in a line, then the result (the line) is checked for an intersection with Object3, if any.  In some cases the intersection between Object1 and Object2 is a point.  Points cannot be used in the intersect() function, so the Incomplete property is set to True and a warning is shown in the Report view.  You can sometimes rearrange the order of evaluation in order to allow all 3 objects to be used.
+## Reset On Recompute (Bool)
+Default: True.  If True, reset the Intersection object's shape to null at the beginning of the recompute.  Set to False to retain the existing intersection shape when due to subsequent changes to the model the objects no longer intersect.  This is to help not to lose Link properties and have to configure them again.
+## Tolerance (Float)
+Default 0.01 mm.  When checking that the intersection shape (when it's a vertex) of the first 2 objects (when there are 3 objects) this tolerance value is used to determine whether a point lies on a surface / curve.
+## Trimming (Enumeration)
+Default: Untrimmed.  In Untrimmed mode faces and edges are treated as untrimmed (infinite) geometries.  In Trimmed mode a common is taken with the intersection shape and with the 2 or 3 objects in an attempt to trim the resulting intersection to match the surface.  Take the intersection of 2 perpendicular faces to see the difference here.
 ## Type (String)
 The type of the intersection object.  This is also readonly.  Shows the TypeId of the intersection shape.  For example, if 2 datum planes are intersecting, then the Type would be Part::GeomLine.
 ## Version (String)
@@ -43,8 +55,11 @@ Readonly.  The version of the macro used to create this Intersection object.
 # Limitations / Known Issues
 * Surfaces and edges are often treated as infinite in size.<br/>
 * A datum line tangent to a face might not be seen as intersecting.<br/>
-To illustrate both of the above issues, consider a datum line positioned on the top face of a cube, running front to back.  If the datum line and the top face are selected to make the Intersection object, no intersection will be found even though the line is on the plane of the face.  But if the front face is selected along with the datum line, then an intersection will be found.  If you move the datum line in the z direction so that it is above the top face, the intersection with the front face is still found because the front face is treated as an infinite plane.
+To illustrate both of the above issues, consider a datum line positioned on the top face of a cube, running front to back.  If the datum line and the top face are selected to make the Intersection object, no intersection will be found even though the line is on the plane of the face.  But if the front face is selected along with the datum line, then an intersection will be found.  If you move the datum line in the z direction so that it is above the top face, the intersection with the front face is still found because the front face is treated as an infinite plane.<br/>
+2 properties are there to help with these issues: Trimming and Check Vertex Intersection.
+
 * seamlines may interfere with the intersection shape.  For example, if a datum plane intersects a sphere the seamline of the sphere might trim the intersection shape to produce an arc instead of a full circle.<br/>
+* bspline edges are troublesome, sometimes not all intersections with s-type curves are found.
 
 # Changelog
 * 2022.02.25 -- Add Trimming, Enable Logging, Object Order, ResetOnRecompute, CheckVertexIntersection properties.
