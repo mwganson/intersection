@@ -47,6 +47,7 @@ To illustrate both of the above issues, consider a datum line positioned on the 
 * seamlines may interfere with the intersection shape.  For example, if a datum plane intersects a sphere the seamline of the sphere might trim the intersection shape to produce an arc instead of a full circle.<br/>
 
 # Changelog
+* 2022.02.25 -- Add Trimming, Enable Logging, Object Order, ResetOnRecompute, CheckVertexIntersection properties.
 * 2022.02.24.rev4 -- add Object Order property
 * 2022.02.24.rev3 -- add support for 3rd object
 * 2022.02.24.rev2 --make some properties readonly
