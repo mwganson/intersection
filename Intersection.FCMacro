@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.26"
-#__version__ = "2022.02.26"
+__version__ = "2022.02.26.rev2"
+#__version__ = "2022.02.26.rev2"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
@@ -27,7 +27,7 @@ __version__ = "2022.02.26"
 #"When there are 3 objects and the intersection of the first 2 is a vertex, set this True \
 #to require that the vertex lies on the 3rd face or edge\n").CheckVertexIntersection = False
 #        obj.addProperty("App::PropertyBool","ResetOnRecompute","Intersection","Reset shape to null at the start of each recompute").ResetOnRecompute = True
-#        obj.addProperty("App::PropertyFloatConstraint","Tolerance","Intersection","Tolerance for testing if result vertex is on the shapes").Tolerance = (0.01,0,float("inf"),.01)
+#        obj.addProperty("App::PropertyFloatConstraint","Tolerance","Intersection","Tolerance, default: 0.01 mm").Tolerance = (0.01,0,float("inf"),.01)
 #        obj.addProperty("App::PropertyString","Type","Intersection","Type of the intersection object or None").Type="None"
 #        obj.addProperty("App::PropertyString","Version","Intersection").Version = __version__
 #        obj.addProperty("App::PropertyEnumeration","Trimming","Intersection","If Trimmed, then the intersection edge is attempted to be trimmed to surfaces\n\
@@ -149,10 +149,10 @@ __version__ = "2022.02.26"
 #        c2 = s2.Curve if hasattr(s2,"Curve") else s2.Surface if hasattr(s2,"Surface") else None
 #        c3 = s3.Curve if hasattr(s3,"Curve") else s3.Surface if hasattr(s3,"Surface") else None
 #        assert(c1 != None and c2 != None)
-#        intersection = c1.intersect(c2)
+#        intersection = c1.intersect(c2, fp.Tolerance)
 #        if not intersection:
 #            self.log(fp,"No intersection, trying c2 -> c1 instead of c1 -> c2\n")
-#            intersection = c2.intersect(c1)
+#            intersection = c2.intersect(c1, fp.Tolerance)
 #            intersection = self.getIntersectionShape(fp,intersection)
 #        if not intersection:
 #            self.log(fp,"No intersection between c1 and c2\n")
@@ -177,8 +177,8 @@ __version__ = "2022.02.26"
 #            return self.checkAllVertexIntersections(fp, shape, s1, s2, s3)
 #        #intersection was not a vertex, so must be an edge
 #        #c4 is the curve result, c3 is the surface/curve of Object3
-#        self.log(fp,f"checking c3.intersect(c4) {c3}.intersect({c4})\n")
-#        intersection = c3.intersect(c4) if c4 else None
+#        self.log(fp,f"checking c3.intersect(c4,fp.Tolerance) {c3}.intersect({c4},fp.Tolerance)\n")
+#        intersection = c3.intersect(c4,fp.Tolerance) if c4 else None
 #        self.log(fp,f"intersection = {intersection}\n")
 #        if not intersection:
 #            return Part.Shape()
