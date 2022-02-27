@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-__version__ = "2022.02.26.rev2"
-#__version__ = "2022.02.26.rev2"
+__version__ = "2022.02.26.rev3"
+#__version__ = "2022.02.26.rev3"
 #__title__ = "Intersection"
 #__author__ = "<TheMarkster> 2021"
 #__license__ = "LGPL 2.1"
@@ -72,7 +72,7 @@ __version__ = "2022.02.26.rev2"
 #            fp.Shape = self.makeShapeType(fp,shape)
 #        fp.Type = self.getIntersectionType(fp,fp.Shape)
 #        try:
-#            fp.Shape.check(True)
+#            fp.Shape.check()
 #            fp.HasIntersection = not fp.Shape.isNull()
 #        except:
 #            fp.HasIntersection = False
