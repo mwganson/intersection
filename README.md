@@ -62,6 +62,7 @@ To illustrate both of the above issues, consider a datum line positioned on the 
 * bspline edges are troublesome, sometimes not all intersections with s-type curves are found.
 
 # Changelog
+* 2022.02.26.rev2 -- minor tooltip changes
 * 2022.02.26 -- Add face/edge editor, fix issue with CheckVertexIntersection()
 * 2022.02.25 -- Add Trimming, Enable Logging, Object Order, ResetOnRecompute, CheckVertexIntersection properties.
 * 2022.02.24.rev4 -- add Object Order property
