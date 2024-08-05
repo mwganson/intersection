@@ -62,6 +62,9 @@ To illustrate both of the above issues, consider a datum line positioned on the 
 * bspline edges are troublesome, sometimes not all intersections with s-type curves are found.
 
 # Changelog
+* 2024.08.05 -- transition to .py file instead of .FCMacro now that addon manager supports this since 0.22.
+* Fix Object Order so it works correctly
+* Now the .FCMacro file simply copies itself as a .py file for 0.21 and earlier
 * 2023.09.09 -- add code for addon manager to be able to (hopefully) put an icon on the toolbar during installation
 * 2022.02.26.rev2 -- minor tooltip changes
 * 2022.02.26 -- Add face/edge editor, fix issue with CheckVertexIntersection()
