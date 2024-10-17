@@ -1,4 +1,4 @@
-__version__ = "2024.08.05"
+__version__ = "2024.10.17"
 __title__ = "Intersection"
 __author__ = "<TheMarkster> 2021"
 __license__ = "LGPL 2.1"
@@ -131,9 +131,13 @@ class Intersection:
 
     def getOrderedObjectShapes(self,fp):
         """gets the shapes user has set for the Object links according to the order in fp.ObjectOrder"""
-        s1 = fp.Object1[0].getSubObject(fp.Object1[1])[0] if fp.Object1 else None
-        s2 = fp.Object2[0].getSubObject(fp.Object2[1])[0] if fp.Object2 else None
-        s3 = fp.Object3[0].getSubObject(fp.Object3[1])[0] if fp.Object3 else None
+        obj,sub = fp.Object1 if fp.Object1 else (None, None)
+        s1 = Part.getShape(obj, sub[0]) if obj else None
+        obj,sub = fp.Object2 if fp.Object2 else (None, None)
+        s2 = Part.getShape(obj, sub[0]) if obj else None
+        obj,sub = fp.Object3 if fp.Object3 else (None, None)
+        s3 = Part.getShape(obj, sub[0]) if obj else None
+
         orders = [(s1,s2,s3),(s1,s3,s2),(s2,s1,s3),(s2,s3,s1),(s3,s1,s2),(s3,s2,s1),\
         (s1,s2,None),(s2,s1,None),(s1,s3,None),(s3,s1,None),(s3,s2,None),(s2,s3,None)]
         s1,s2,s3 = orders[fp.getEnumerationsOfProperty("ObjectOrder").index(fp.ObjectOrder)]
